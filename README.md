@@ -1,6 +1,7 @@
 # Pytricia Go
 
-A lazy port of pytricia from python to golang.
+A port of [pytricia](https://github.com/jsommers/pytricia) to golang.
+
 
 # Usage
 ``` go
@@ -29,3 +30,5 @@ func main() {
 # Future implementations
  - .ToList() function
  - any formal level of testing
+ - LoadCSV() function
+ - DumpCSV() function
