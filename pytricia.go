@@ -6,6 +6,14 @@ import (
 	"strconv"
 )
 
+func NewPyTricia() *PyTricia {
+	return &PyTricia{
+		children: [2]*PyTricia{nil, nil},
+		parent:   nil,
+		value:    nil,
+	}
+}
+
 // TrieNode represents a node in the trie.
 type PyTricia struct {
 	children [2]*PyTricia
