@@ -99,22 +99,32 @@ func lastIP(ipnet *net.IPNet) net.IP {
 	ip := ipnet.IP
 
 	var lastIP big.Int
-	lastIP.SetBytes(ip.To16()) // Ensure the IP is in 16 byte format
-	var networkSize big.Int
-	networkSize.SetBytes(net.IP(ipnet.Mask).To16())
+	lastIP.SetBytes(ip.To16()) // Convert to 16-byte representation
 
-	var ones, bits = ipnet.Mask.Size()
-	var totalIPs big.Int
-	totalIPs.Lsh(big.NewInt(1), uint(bits-ones))
-
-	lastIP.Add(&lastIP, &totalIPs)
+	ones, bits := ipnet.Mask.Size()
+	totalIPs := big.NewInt(1)
+	totalIPs.Lsh(totalIPs, uint(bits-ones))
+	lastIP.Add(&lastIP, totalIPs)
 	lastIP.Sub(&lastIP, big.NewInt(1)) // Subtract 1 to get the last address
 
-	ip = lastIP.Bytes()
-	if len(ip) == 16 {
-		return ip
+	lastIPBytes := lastIP.Bytes()
+	lastIPBytesLen := len(lastIPBytes)
+	ipLen := len(ip)
+	if ipLen == 16 || ipLen == net.IPv6len { // IPv6
+		return net.IP(lastIPBytes)
+	} else if ipLen == net.IPv4len { // IPv4
+		// Ensure the slice has at least 4 bytes
+		for lastIPBytesLen < net.IPv4len {
+			lastIPBytes = append([]byte{0}, lastIPBytes...)
+		}
+		return net.IPv4(
+			lastIPBytes[lastIPBytesLen-4],
+			lastIPBytes[lastIPBytesLen-3],
+			lastIPBytes[lastIPBytesLen-2],
+			lastIPBytes[lastIPBytesLen-1],
+		)
 	}
-	return net.IPv4(ip[12], ip[13], ip[14], ip[15])
+	return nil
 }
 
 // ipToBinary converts an IP address to a binary representation.
