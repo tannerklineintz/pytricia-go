@@ -13,15 +13,19 @@ func main() {
     val := i.Get("8.8.8.10/31")
     val = i.Get("8.8.8.8")
 
+    if i.HasKey("8.8.8.0/24") {
+        // ...
+	}
+
     if i.Contains("8.8.8.8") {
         // ...
     }
-    
+
     ch := i.Children()
     pr := i.Parent()
 }
 ```
 
 # Future implementations
-.HasKey()
-.ToList()
+ - .ToList() function
+ - any formal level of testing

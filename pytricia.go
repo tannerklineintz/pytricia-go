@@ -1,11 +1,11 @@
 package pytricia
 
 import (
-	"math/big"
 	"net"
 	"strconv"
 )
 
+// NewPyTricia initializes pytricia object
 func NewPyTricia() *PyTricia {
 	return &PyTricia{
 		children: [2]*PyTricia{nil, nil},
@@ -14,7 +14,7 @@ func NewPyTricia() *PyTricia {
 	}
 }
 
-// TrieNode represents a node in the trie.
+// PyTricia represents a node in the PyTricia trie.
 type PyTricia struct {
 	children [2]*PyTricia
 	parent   *PyTricia
@@ -45,42 +45,64 @@ func (t *PyTricia) Insert(cidr string, value interface{}) {
 	currentNode.value = value
 }
 
-func (t *PyTricia) Get(cidr string) interface{} {
-	if net.ParseIP(cidr) != nil {
-		return t.getIP(cidr)
-	} else {
-		return t.getCIDR(cidr)
-	}
+// IsRoot returns whether this PyTricia object is the trie's root node
+// (Only needed for more manual operations)
+func (t *PyTricia) IsRoot() bool {
+	return t.parent == nil
 }
 
+// Contains returns whether a cidr is contained within the trie
 func (t *PyTricia) Contains(cidr string) bool {
 	return t.Get(cidr) != nil
 }
 
-// getCIDR finds the key for a CIDR range.
-func (t *PyTricia) getCIDR(cidr string) interface{} {
-	ip, ipnet, err := net.ParseCIDR(cidr)
-	if err != nil {
-		return nil
+// HasKey returns whether a cidr is a key within the trie
+func (t *PyTricia) HasKey(cidr string) bool {
+	if net.ParseIP(cidr) != nil {
+		return false
+	} else {
+		ip, ipnet, err := net.ParseCIDR(cidr)
+		if err != nil {
+			return false
+		}
+		ones, _ := ipnet.Mask.Size()
+		currentNode := t
+		for i, bit := range ipToBinary(ip) {
+			if i >= ones {
+				break
+			}
+			if currentNode.children[bit] == nil {
+				return false
+			}
+			currentNode = currentNode.children[bit]
+		}
+		return currentNode.value != nil
 	}
-	startIp := ip
-	endIp := lastIP(ipnet)
-
-	startVal := t.getIP(startIp.String())
-	endVal := t.getIP(endIp.String())
-
-	if startVal == endVal && startVal != nil {
-		return startVal
-	}
-	return nil
 }
 
-// getIP finds the key for an IP address.
-func (t *PyTricia) getIP(ip string) interface{} {
-	netIp := net.ParseIP(ip)
+// Get returns value associated with CIDR or IP address
+func (t *PyTricia) Get(cidr string) interface{} {
+	var ip net.IP
+	var ipnet *net.IPNet
+	var ones int
+	var err error
+
+	if ip = net.ParseIP(cidr); ip != nil {
+		ones = 32
+	} else {
+		ip, ipnet, err = net.ParseCIDR(cidr)
+		if err != nil {
+			return nil
+		}
+		ones, _ = ipnet.Mask.Size()
+	}
+
 	currentNode := t
 	var currentValue interface{} = nil
-	for _, bit := range ipToBinary(netIp) {
+	for i, bit := range ipToBinary(ip) {
+		if i >= ones {
+			break
+		}
 		if currentNode.children[bit] == nil {
 			break
 		}
@@ -100,39 +122,6 @@ func (node *PyTricia) Children() [2]*PyTricia {
 // returns parent, if any
 func (node *PyTricia) Parent() *PyTricia {
 	return node.parent
-}
-
-// last ip address in a cidr
-func lastIP(ipnet *net.IPNet) net.IP {
-	ip := ipnet.IP
-
-	var lastIP big.Int
-	lastIP.SetBytes(ip.To16()) // Convert to 16-byte representation
-
-	ones, bits := ipnet.Mask.Size()
-	totalIPs := big.NewInt(1)
-	totalIPs.Lsh(totalIPs, uint(bits-ones))
-	lastIP.Add(&lastIP, totalIPs)
-	lastIP.Sub(&lastIP, big.NewInt(1)) // Subtract 1 to get the last address
-
-	lastIPBytes := lastIP.Bytes()
-	lastIPBytesLen := len(lastIPBytes)
-	ipLen := len(ip)
-	if ipLen == 16 || ipLen == net.IPv6len { // IPv6
-		return net.IP(lastIPBytes)
-	} else if ipLen == net.IPv4len { // IPv4
-		// Ensure the slice has at least 4 bytes
-		for lastIPBytesLen < net.IPv4len {
-			lastIPBytes = append([]byte{0}, lastIPBytes...)
-		}
-		return net.IPv4(
-			lastIPBytes[lastIPBytesLen-4],
-			lastIPBytes[lastIPBytesLen-3],
-			lastIPBytes[lastIPBytesLen-2],
-			lastIPBytes[lastIPBytesLen-1],
-		)
-	}
-	return nil
 }
 
 // ipToBinary converts an IP address to a binary representation.
