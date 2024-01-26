@@ -53,6 +53,10 @@ func (t *PyTricia) Get(cidr string) interface{} {
 	}
 }
 
+func (t *PyTricia) Contains(cidr string) bool {
+	return t.Get(cidr) != nil
+}
+
 // getCIDR finds the key for a CIDR range.
 func (t *PyTricia) getCIDR(cidr string) interface{} {
 	ip, ipnet, err := net.ParseCIDR(cidr)
@@ -136,7 +140,9 @@ func ipToBinary(ip net.IP) []int {
 	bits := make([]int, 0)
 
 	// Ensure the IP is in 16-byte format
-	ip = ip.To16()
+	if ipv4 := ip.To4(); ipv4 != nil {
+		ip = ipv4
+	}
 
 	for _, b := range ip {
 		for i := 7; i >= 0; i-- {
