@@ -26,9 +26,7 @@ func main() {
     pr := i.Parent()
 }
 ```
+__More example code available in [test code](./pytricia_test.go)__
 
 # Future implementations
- - .ToList() function
- - any formal level of testing
- - LoadCSV() function
- - DumpCSV() function
+ - testing for ipv6
