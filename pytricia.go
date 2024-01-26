@@ -75,13 +75,17 @@ func (t *PyTricia) getCIDR(cidr string) interface{} {
 func (t *PyTricia) getIP(ip string) interface{} {
 	netIp := net.ParseIP(ip)
 	currentNode := t
+	var currentValue interface{} = nil
 	for _, bit := range ipToBinary(netIp) {
 		if currentNode.children[bit] == nil {
-			return nil
+			break
 		}
 		currentNode = currentNode.children[bit]
+		if currentNode.value != nil {
+			currentValue = currentNode.value
+		}
 	}
-	return currentNode.value
+	return currentValue
 }
 
 // returns children, if any
