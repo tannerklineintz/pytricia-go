@@ -110,11 +110,11 @@ func lastIP(ipnet *net.IPNet) net.IP {
 	lastIP.Add(&lastIP, &totalIPs)
 	lastIP.Sub(&lastIP, big.NewInt(1)) // Subtract 1 to get the last address
 
-	ipBytes := lastIP.Bytes()
-	if len(ipBytes) == 16 {
-		return net.IP(ipBytes)
+	ip = lastIP.Bytes()
+	if len(ip) == 16 {
+		return ip
 	}
-	return net.IPv4(ipBytes[12], ipBytes[13], ipBytes[14], ipBytes[15])
+	return net.IPv4(ip[12], ip[13], ip[14], ip[15])
 }
 
 // ipToBinary converts an IP address to a binary representation.
