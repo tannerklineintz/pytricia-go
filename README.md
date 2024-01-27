@@ -27,6 +27,3 @@ func main() {
 }
 ```
 __More example code available in [test code](./pytricia_test.go)__
-
-# Future implementations
- - testing for ipv6

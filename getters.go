@@ -1,6 +1,8 @@
 package pytricia
 
-import "net"
+import (
+	"net"
+)
 
 // Get returns value associated with CIDR or IP address
 func (t *PyTricia) Get(cidr string) interface{} {
@@ -10,7 +12,13 @@ func (t *PyTricia) Get(cidr string) interface{} {
 	var err error
 
 	if ip = net.ParseIP(cidr); ip != nil {
-		ones = 32
+		if t := typeIP(cidr); t == 4 {
+			ones = 32
+		} else if t == 6 {
+			ones = 128
+		} else {
+			return nil
+		}
 	} else {
 		ip, ipnet, err = net.ParseCIDR(cidr)
 		if err != nil {
@@ -44,7 +52,13 @@ func (t *PyTricia) GetNode(cidr string) *PyTricia {
 	var err error
 
 	if ip = net.ParseIP(cidr); ip != nil {
-		ones = 32
+		if t := typeIP(cidr); t == 4 {
+			ones = 32
+		} else if t == 6 {
+			ones = 128
+		} else {
+			return nil
+		}
 	} else {
 		ip, ipnet, err = net.ParseCIDR(cidr)
 		if err != nil {
