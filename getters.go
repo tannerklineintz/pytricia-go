@@ -4,67 +4,19 @@ import (
 	"net"
 )
 
-// Get returns value associated with CIDR or IP address
+// Get returns value associated with CIDR or IP
 func (t *PyTricia) Get(cidr string) interface{} {
-	var ip net.IP
-	var ipnet *net.IPNet
-	var ones int
-	var err error
-
-	if ip = net.ParseIP(cidr); ip != nil {
-		if t := typeIP(cidr); t == 4 {
-			ones = 32
-		} else if t == 6 {
-			ones = 128
-		} else {
-			return nil
-		}
-	} else {
-		ip, ipnet, err = net.ParseCIDR(cidr)
-		if err != nil {
-			return nil
-		}
-		ones, _ = ipnet.Mask.Size()
+	if node := t.GetNode(cidr); node != nil {
+		return node.value
 	}
-
-	currentNode := t
-	var currentValue interface{} = nil
-	for i, bit := range ipToBinary(ip) {
-		if i >= ones {
-			break
-		}
-		if currentNode.children[bit] == nil {
-			break
-		}
-		currentNode = currentNode.children[bit]
-		if currentNode.value != nil {
-			currentValue = currentNode.value
-		}
-	}
-	return currentValue
+	return nil
 }
 
-// GetNode returns the node associated with CIDR or IP address
+// GetNode returns the node associated with CIDR or IP
 func (t *PyTricia) GetNode(cidr string) *PyTricia {
-	var ip net.IP
-	var ipnet *net.IPNet
-	var ones int
-	var err error
-
-	if ip = net.ParseIP(cidr); ip != nil {
-		if t := typeIP(cidr); t == 4 {
-			ones = 32
-		} else if t == 6 {
-			ones = 128
-		} else {
-			return nil
-		}
-	} else {
-		ip, ipnet, err = net.ParseCIDR(cidr)
-		if err != nil {
-			return nil
-		}
-		ones, _ = ipnet.Mask.Size()
+	ip, ones, err := parseCIDR(cidr)
+	if err != nil {
+		return nil
 	}
 
 	currentNode := t
@@ -84,33 +36,29 @@ func (t *PyTricia) GetNode(cidr string) *PyTricia {
 	return currentValue
 }
 
-// Contains returns whether a cidr is contained within the trie
+// Contains returns whether a CIDR or IP is contained within the trie
 func (t *PyTricia) Contains(cidr string) bool {
 	return t.Get(cidr) != nil
 }
 
-// HasKey returns whether a cidr is a key within the trie
+// HasKey returns whether a CIDR or IP is a key within the trie
 func (t *PyTricia) HasKey(cidr string) bool {
-	if net.ParseIP(cidr) != nil {
+	ip, ones, err := parseCIDR(cidr)
+	if err != nil {
 		return false
-	} else {
-		ip, ipnet, err := net.ParseCIDR(cidr)
-		if err != nil {
+	}
+
+	currentNode := t
+	for i, bit := range ipToBinary(ip) {
+		if i >= ones {
+			break
+		}
+		if currentNode.children[bit] == nil {
 			return false
 		}
-		ones, _ := ipnet.Mask.Size()
-		currentNode := t
-		for i, bit := range ipToBinary(ip) {
-			if i >= ones {
-				break
-			}
-			if currentNode.children[bit] == nil {
-				return false
-			}
-			currentNode = currentNode.children[bit]
-		}
-		return currentNode.value != nil
+		currentNode = currentNode.children[bit]
 	}
+	return currentNode.value != nil
 }
 
 // IsRoot returns whether this PyTricia object is the trie's root node

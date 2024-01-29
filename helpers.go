@@ -1,9 +1,12 @@
 package pytricia
 
 import (
+	"errors"
 	"fmt"
+	"math/rand"
 	"net"
 	"strconv"
+	"time"
 )
 
 // ipToBinary converts an IP address to a binary representation.
@@ -112,4 +115,73 @@ func typeIP(cidr string) int {
 		}
 	}
 	return -1
+}
+
+// parseCIDR parses IP or CIDR
+func parseCIDR(cidr string) (net.IP, int, error) {
+	var ip net.IP
+	var ipnet *net.IPNet
+	var ones int
+	var err error
+
+	if ip = net.ParseIP(cidr); ip != nil {
+		if t := typeIP(cidr); t == 4 {
+			ones = 32
+		} else if t == 6 {
+			ones = 128
+		} else {
+			return nil, 0, errors.New("Invalid IP/CIDR")
+		}
+	} else {
+		ip, ipnet, err = net.ParseCIDR(cidr)
+		if err != nil {
+			return nil, 0, errors.New("Invalid IP/CIDR")
+		}
+		ones, _ = ipnet.Mask.Size()
+	}
+	return ip, ones, nil
+}
+
+// isCIDR returns whether an string is a CIDR
+// or simply an IP address
+func isCIDR(cidr string) bool {
+	for i := len(cidr); i > len(cidr)-4; i-- {
+		if cidr[i] == byte('/') {
+			return true
+		}
+	}
+	return false
+}
+
+func randomIPv4() string {
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+	return fmt.Sprintf("%d.%d.%d.%d", rand.Intn(256), rand.Intn(256), rand.Intn(256), rand.Intn(256))
+}
+
+func randomIPv4CIDR() string {
+	ip := randomIPv4()
+	mask := rand.Intn(32) + 1 // 1 to 32
+	return fmt.Sprintf("%s/%d", ip, mask)
+}
+
+func randomHexDigit() string {
+	digits := "0123456789abcdef"
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+	return string(digits[rand.Intn(len(digits))])
+}
+
+func randomIPv6Group() string {
+	return fmt.Sprintf("%s%s%s%s", randomHexDigit(), randomHexDigit(), randomHexDigit(), randomHexDigit())
+}
+
+func randomIPv6() string {
+	return fmt.Sprintf("%s:%s:%s:%s:%s:%s:%s:%s",
+		randomIPv6Group(), randomIPv6Group(), randomIPv6Group(), randomIPv6Group(),
+		randomIPv6Group(), randomIPv6Group(), randomIPv6Group(), randomIPv6Group())
+}
+
+func randomIPv6CIDR() string {
+	ip := randomIPv6()
+	mask := rand.Intn(128) + 1 // 1 to 128
+	return fmt.Sprintf("%s/%d", ip, mask)
 }

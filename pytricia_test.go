@@ -146,3 +146,181 @@ func TestPytriciaIPv6(t *testing.T) {
 		t.Errorf("Error on test 13: %v", parent)
 	}
 }
+
+func BenchmarkInsertIPv4(b *testing.B) {
+	pt := NewPyTricia()
+	cidrs := []string{}
+	for i := 0; i < b.N; i++ {
+		cidrs = append(cidrs, randomIPv4CIDR())
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		pt.Insert(cidrs[i], "test")
+	}
+}
+
+func BenchmarkSetIPv4(b *testing.B) {
+	pt := NewPyTricia()
+	cidrs := []string{}
+	for i := 0; i < b.N; i++ {
+		cidrs = append(cidrs, randomIPv4CIDR())
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		pt.Set(cidrs[i], "test")
+	}
+}
+
+func BenchmarkAddIPv4(b *testing.B) {
+	pt := NewPyTricia()
+	cidrs := []string{}
+	for i := 0; i < b.N; i++ {
+		cidrs = append(cidrs, randomIPv4CIDR())
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		pt.Add(cidrs[i], "test")
+	}
+}
+
+func BenchmarkGetIPv4(b *testing.B) {
+	pt := NewPyTricia()
+	cidrs := []string{}
+	for i := 0; i < b.N; i++ {
+		cidrs = append(cidrs, randomIPv4CIDR())
+		pt.Insert(randomIPv4CIDR(), "test")
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		pt.Get(cidrs[i])
+	}
+}
+
+func BenchmarkGetNodeIPv4(b *testing.B) {
+	pt := NewPyTricia()
+	cidrs := []string{}
+	for i := 0; i < b.N; i++ {
+		cidrs = append(cidrs, randomIPv4CIDR())
+		pt.Insert(randomIPv4CIDR(), "test")
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		pt.GetNode(cidrs[i])
+	}
+}
+
+func BenchmarkHasKeyIPv4(b *testing.B) {
+	pt := NewPyTricia()
+	cidrs := []string{}
+	for i := 0; i < b.N; i++ {
+		cidrs = append(cidrs, randomIPv4CIDR())
+		pt.Insert(randomIPv4CIDR(), "test")
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		pt.HasKey(cidrs[i])
+	}
+}
+
+func BenchmarkCIDRIPv4(b *testing.B) {
+	pt := NewPyTricia()
+	nodes := []*PyTricia{}
+	for i := 0; i < b.N; i++ {
+		cidr := randomIPv4CIDR()
+		pt.Insert(cidr, "test")
+		nodes = append(nodes, pt.GetNode(cidr))
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		nodes[i].CIDR()
+	}
+}
+
+func BenchmarkInsertIPv6(b *testing.B) {
+	pt := NewPyTricia()
+	cidrs := []string{}
+	for i := 0; i < b.N; i++ {
+		cidrs = append(cidrs, randomIPv6CIDR())
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		pt.Insert(cidrs[i], "test")
+	}
+}
+
+func BenchmarkSetIPv6(b *testing.B) {
+	pt := NewPyTricia()
+	cidrs := []string{}
+	for i := 0; i < b.N; i++ {
+		cidrs = append(cidrs, randomIPv6CIDR())
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		pt.Set(cidrs[i], "test")
+	}
+}
+
+func BenchmarkAddIPv6(b *testing.B) {
+	pt := NewPyTricia()
+	cidrs := []string{}
+	for i := 0; i < b.N; i++ {
+		cidrs = append(cidrs, randomIPv6CIDR())
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		pt.Add(cidrs[i], "test")
+	}
+}
+
+func BenchmarkGetIPv6(b *testing.B) {
+	pt := NewPyTricia()
+	cidrs := []string{}
+	for i := 0; i < b.N; i++ {
+		cidrs = append(cidrs, randomIPv6CIDR())
+		pt.Insert(randomIPv6CIDR(), "test")
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		pt.Get(cidrs[i])
+	}
+}
+
+func BenchmarkGetNodeIPv6(b *testing.B) {
+	pt := NewPyTricia()
+	cidrs := []string{}
+	for i := 0; i < b.N; i++ {
+		cidrs = append(cidrs, randomIPv6CIDR())
+		pt.Insert(randomIPv6CIDR(), "test")
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		pt.GetNode(cidrs[i])
+	}
+}
+
+func BenchmarkHasKeyIPv6(b *testing.B) {
+	pt := NewPyTricia()
+	cidrs := []string{}
+	for i := 0; i < b.N; i++ {
+		cidrs = append(cidrs, randomIPv6CIDR())
+		pt.Insert(randomIPv6CIDR(), "test")
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		pt.HasKey(cidrs[i])
+	}
+}
+
+func BenchmarkCIDRIPv6(b *testing.B) {
+	pt := NewPyTricia()
+	nodes := []*PyTricia{}
+	for i := 0; i < b.N; i++ {
+		cidr := randomIPv6CIDR()
+		pt.Insert(cidr, "test")
+		nodes = append(nodes, pt.GetNode(cidr))
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		nodes[i].CIDR()
+	}
+}
