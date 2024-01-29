@@ -78,7 +78,7 @@ func binaryToCIDR(path []byte, ipType int) *net.IPNet {
 	return ipNet
 }
 
-// Helper function to convert a slice of binary to a byte
+// binarySliceToByte converts a slice of binary to a byte
 func binarySliceToByte(bits []byte) byte {
 	var num byte
 	for _, bit := range bits {
@@ -87,7 +87,7 @@ func binarySliceToByte(bits []byte) byte {
 	return num
 }
 
-// Helper function to convert a slice of binary to a uint16 for IPv6
+// binarySliceToUint16 converts a slice of binary to a uint16 for IPv6
 func binarySliceToUint16(bits []byte) uint16 {
 	var num uint16
 	for _, bit := range bits {
@@ -96,7 +96,7 @@ func binarySliceToUint16(bits []byte) uint16 {
 	return num
 }
 
-// Helper function for min
+// min is a helper function for min
 func min(a, b int) int {
 	if a < b {
 		return a
@@ -153,33 +153,39 @@ func isCIDR(cidr string) bool {
 	return false
 }
 
+// randomIPv4 returns random ipv4 address
 func randomIPv4() string {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 	return fmt.Sprintf("%d.%d.%d.%d", rand.Intn(256), rand.Intn(256), rand.Intn(256), rand.Intn(256))
 }
 
+// randomIPv4CIDR returns random ipv4 CIDR
 func randomIPv4CIDR() string {
 	ip := randomIPv4()
 	mask := rand.Intn(32) + 1 // 1 to 32
 	return fmt.Sprintf("%s/%d", ip, mask)
 }
 
+// randomHexDigit returns random hex digit
 func randomHexDigit() string {
 	digits := "0123456789abcdef"
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 	return string(digits[rand.Intn(len(digits))])
 }
 
+// randomIPv6Group returns random ipv6 group
 func randomIPv6Group() string {
 	return fmt.Sprintf("%s%s%s%s", randomHexDigit(), randomHexDigit(), randomHexDigit(), randomHexDigit())
 }
 
+// randomIPv6Group returns random ipv6 address
 func randomIPv6() string {
 	return fmt.Sprintf("%s:%s:%s:%s:%s:%s:%s:%s",
 		randomIPv6Group(), randomIPv6Group(), randomIPv6Group(), randomIPv6Group(),
 		randomIPv6Group(), randomIPv6Group(), randomIPv6Group(), randomIPv6Group())
 }
 
+// randomIPv6Group returns random ipv6 CIDR
 func randomIPv6CIDR() string {
 	ip := randomIPv6()
 	mask := rand.Intn(128) + 1 // 1 to 128

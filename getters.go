@@ -67,7 +67,7 @@ func (t *PyTricia) IsRoot() bool {
 	return t.parent == nil
 }
 
-// GetCurrentCIDR returns the CIDR representation of the current PyTricia node in the trie.
+// CIDR returns the CIDR representation of the current PyTricia node in the trie.
 func (node *PyTricia) CIDR() *net.IPNet {
 	// Start from the current node and traverse up to the root to construct the path.
 	var path []byte
