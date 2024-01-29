@@ -27,3 +27,9 @@ func main() {
 }
 ```
 __More example code available in [test code](./pytricia_test.go)__
+
+# TO DO
+ - Keys()
+ - Values()
+ - Delete()
+ - Clear()

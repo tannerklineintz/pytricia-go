@@ -12,22 +12,31 @@ func (t *PyTricia) Insert(cidr string, value interface{}) error {
 		return err
 	}
 
+	t.Mutex.RLock()
 	currentNode := t
 	for i, bit := range ipToBinary(ip) {
 		if i >= ones {
 			break
 		}
 		if currentNode.children[bit] == nil {
+			t.Mutex.RUnlock()
+			t.Mutex.Lock()
 			currentNode.children[bit] = &PyTricia{
 				parent:   currentNode,
 				children: [2]*PyTricia{nil, nil},
 				value:    nil,
 			}
+			t.Mutex.Unlock()
+			t.Mutex.RLock()
 		}
 		currentNode = currentNode.children[bit]
 	}
+	t.Mutex.RUnlock()
+
+	t.Mutex.Lock()
 	currentNode.value = value
 	currentNode.ipType = typeIP(cidr)
+	t.Mutex.Unlock()
 
 	return nil
 }
@@ -40,21 +49,28 @@ func (t *PyTricia) Set(cidr string, value interface{}) error {
 		return err
 	}
 
+	t.Mutex.RLock()
 	currentNode := t
 	for i, bit := range ipToBinary(ip) {
 		if i >= ones {
 			break
 		}
 		if currentNode.children[bit] == nil {
+			t.Mutex.RUnlock()
 			return errors.New("CIDR not present")
 		}
 		currentNode = currentNode.children[bit]
 	}
 	if currentNode.value == nil {
+		t.Mutex.RUnlock()
 		return errors.New("CIDR not present")
 	}
+	t.Mutex.RUnlock()
+
+	t.Mutex.Lock()
 	currentNode.value = value
 	currentNode.ipType = typeIP(cidr)
+	t.Mutex.Unlock()
 
 	return nil
 }
@@ -67,25 +83,35 @@ func (t *PyTricia) Add(cidr string, value interface{}) error {
 		return err
 	}
 
+	t.Mutex.RLock()
 	currentNode := t
 	for i, bit := range ipToBinary(ip) {
 		if i >= ones {
 			break
 		}
 		if currentNode.children[bit] == nil {
+			t.Mutex.RUnlock()
+			t.Mutex.Lock()
 			currentNode.children[bit] = &PyTricia{
 				parent:   currentNode,
 				children: [2]*PyTricia{nil, nil},
 				value:    nil,
 			}
+			t.Mutex.Unlock()
+			t.Mutex.RLock()
 		}
 		currentNode = currentNode.children[bit]
 	}
 	if currentNode.value != nil {
+		t.Mutex.RUnlock()
 		return errors.New("CIDR already present")
 	}
+	t.Mutex.RUnlock()
+
+	t.Mutex.Lock()
 	currentNode.value = value
 	currentNode.ipType = typeIP(cidr)
+	t.Mutex.Unlock()
 
 	return nil
 }

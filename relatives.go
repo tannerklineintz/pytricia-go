@@ -1,40 +1,46 @@
 package pytricia
 
 // AllChildren returns all child nodes with non-nil values in a slice.
-func (node *PyTricia) Children() []*PyTricia {
-	var children []*PyTricia
-	node.collectChildren(&children)
+func (t *PyTricia) Children(cidr string) map[string]interface{} {
+	children := make(map[string]interface{})
+	node := t.getNode(cidr)
+
+	t.Mutex.RLock()
+	defer t.Mutex.RUnlock()
+
+	stack := []*PyTricia{node}
+	for len(stack) > 0 {
+		currentNode := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+		if currentNode.value != nil {
+			children[currentNode.cidr().String()] = currentNode.value
+		}
+		if currentNode.children[1] != nil {
+			stack = append(stack, currentNode.children[1])
+		}
+		if currentNode.children[0] != nil {
+			stack = append(stack, currentNode.children[0])
+		}
+	}
 	return children
 }
 
-// collectChildren is a recursive helper function for AllChildren.
-// It traverses the trie and collects nodes with non-nil values.
-func (node *PyTricia) collectChildren(children *[]*PyTricia) {
-	// Check if the current node has a non-nil value.
-	if node.value != nil {
-		*children = append(*children, node)
-	}
-
-	// Recursively traverse left and right children, if they exist.
-	if node.children[0] != nil {
-		node.children[0].collectChildren(children)
-	}
-	if node.children[1] != nil {
-		node.children[1].collectChildren(children)
-	}
-}
-
 // returns parent, if any
-func (node *PyTricia) Parent() *PyTricia {
+func (t *PyTricia) Parent(cidr string) (string, interface{}) {
+	node := t.getNode(cidr)
+
+	t.Mutex.RLock()
+	defer t.Mutex.RUnlock()
+
 	// Start from the current node and traverse up
 	currentNode := node.parent
 	for currentNode != nil {
 		// Check if the current ancestor node has a non-nil value
 		if currentNode.value != nil {
-			return currentNode
+			return currentNode.cidr().String(), currentNode.value
 		}
 		currentNode = currentNode.parent
 	}
 	// If no ancestor with a non-nil value is found, return nil
-	return nil
+	return "", nil
 }

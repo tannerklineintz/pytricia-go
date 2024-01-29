@@ -3,29 +3,39 @@ package pytricia
 // ToMap converts the PyTricia trie into a map of CIDR strings to their associated values
 func (t *PyTricia) ToMap() map[string]interface{} {
 	result := make(map[string]interface{})
-	t.toMapHelper(result, []byte{}, 0)
-	return result
-}
-
-// toMapHelper is a recursive helper function for ToMap
-func (t *PyTricia) toMapHelper(result map[string]interface{}, path []byte, depth int) {
 	if t == nil {
-		return
+		return result
 	}
 
-	// Check if the current node has a value and add it to the map
-	if t.value != nil {
-		cidr := binaryToCIDR(path[:depth], t.ipType)
-		if cidr != nil {
-			result[cidr.String()] = t.value
+	stack := [][3]interface{}{{t, []byte{}, 0}}
+
+	t.Mutex.RLock()
+	defer t.Mutex.RUnlock()
+	for len(stack) > 0 {
+		item := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+
+		node := item[0].(*PyTricia)
+		path := item[1].([]byte)
+		depth := item[2].(int)
+
+		if node.value != nil {
+			cidr := binaryToCIDR(path[:depth], node.ipType)
+			if cidr != nil {
+				result[cidr.String()] = node.value
+			}
+		}
+
+		if node.children[1] != nil {
+			newPath := make([]byte, len(path))
+			copy(newPath, path)
+			stack = append(stack, [3]interface{}{node.children[1], append(newPath, 1), depth + 1})
+		}
+		if node.children[0] != nil {
+			newPath := make([]byte, len(path))
+			copy(newPath, path)
+			stack = append(stack, [3]interface{}{node.children[0], append(newPath, 0), depth + 1})
 		}
 	}
-
-	// Recursively traverse left and right children
-	if t.children[0] != nil {
-		t.children[0].toMapHelper(result, append(path, 0), depth+1)
-	}
-	if t.children[1] != nil {
-		t.children[1].toMapHelper(result, append(path, 1), depth+1)
-	}
+	return result
 }
