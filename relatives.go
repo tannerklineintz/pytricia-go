@@ -13,7 +13,10 @@ func (t *PyTricia) Children(cidr string) map[string]interface{} {
 		currentNode := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
 		if currentNode.value != nil {
-			children[currentNode.cidr().String()] = currentNode.value
+			c := currentNode.cidr()
+			if c != nil {
+				children[c.String()] = currentNode.value
+			}
 		}
 		if currentNode.children[1] != nil {
 			stack = append(stack, currentNode.children[1])
@@ -37,7 +40,10 @@ func (t *PyTricia) Parent(cidr string) (string, interface{}) {
 	for currentNode != nil {
 		// Check if the current ancestor node has a non-nil value
 		if currentNode.value != nil {
-			return currentNode.cidr().String(), currentNode.value
+			c := currentNode.cidr()
+			if c != nil {
+				return c.String(), currentNode.value
+			}
 		}
 		currentNode = currentNode.parent
 	}

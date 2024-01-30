@@ -45,12 +45,20 @@ func TestPytriciaIPv4(t *testing.T) {
 
 	pt.Insert("8.8.8.10/31", "testing456")
 
+	if keys := pt.Keys(); len(keys) != 2 || keys[0] != "8.8.8.0/24" || keys[1] != "8.8.8.10/31" {
+		t.Errorf("Error on test 9: %v", keys)
+	}
+
+	if values := pt.Values(); len(values) != 2 || values[0] != "testing123" || values[1] != "testing456" {
+		t.Errorf("Error on test 9: %v", values)
+	}
+
 	children := pt.Children("8.8.8.0/24")
 	if children["8.8.8.0/24"] != "testing123" {
-		t.Errorf("Error on test 9: %v", children)
+		t.Errorf("Error on test 10: %v", children)
 	}
 	if children["8.8.8.10/31"] != "testing456" {
-		t.Errorf("Error on test 9: %v", children)
+		t.Errorf("Error on test 10: %v", children)
 	}
 
 	expectedMap := map[string]interface{}{
@@ -59,13 +67,13 @@ func TestPytriciaIPv4(t *testing.T) {
 	}
 	mapOutput := pt.ToMap()
 	if len(mapOutput) != len(expectedMap) {
-		t.Errorf("Error on test 10: %v", mapOutput)
+		t.Errorf("Error on test 11: %v", mapOutput)
 	}
 	if mapOutput["8.8.8.0/24"] != expectedMap["8.8.8.0/24"] {
-		t.Errorf("Error on test 10: %v", mapOutput)
+		t.Errorf("Error on test 11: %v", mapOutput)
 	}
 	if mapOutput["8.8.8.10/31"] != expectedMap["8.8.8.10/31"] {
-		t.Errorf("Error on test 10: %v", mapOutput)
+		t.Errorf("Error on test 11: %v", mapOutput)
 	}
 }
 
@@ -106,6 +114,14 @@ func TestPytriciaIPv6(t *testing.T) {
 	}
 
 	pt.Insert("2001:250:1::200/119", "testing456")
+
+	if keys := pt.Keys(); len(keys) != 2 || keys[0] != "2001:250::/38" || keys[1] != "2001:250:1::200/119" {
+		t.Errorf("Error on test 9: %v", keys)
+	}
+
+	if values := pt.Values(); len(values) != 2 || values[0] != "testing123" || values[1] != "testing456" {
+		t.Errorf("Error on test 9: %v", values)
+	}
 
 	children := pt.Children("2001:250::/38")
 	if children["2001:250::/38"] != "testing123" {

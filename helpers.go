@@ -6,22 +6,33 @@ import (
 	"math/rand"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 )
 
 // ipToBinary converts an IP address to a binary representation.
 func ipToBinary(ip net.IP) []int {
-	bits := make([]int, 0)
-
-	// Ensure the IP is in 16-byte format
+	// Determine the length based on IP type (IPv4 or IPv6)
+	var totalBits int
 	if ipv4 := ip.To4(); ipv4 != nil {
 		ip = ipv4
+		totalBits = 32 // IPv4
+	} else {
+		totalBits = 128 // IPv6
 	}
+	bits := make([]int, totalBits)
 
-	for _, b := range ip {
-		for i := 7; i >= 0; i-- {
-			bits = append(bits, int((b>>i)&1))
-		}
+	// Process each byte of the IP address
+	for i, b := range ip {
+		baseIndex := i * 8
+		bits[baseIndex] = int((b >> 7) & 1)
+		bits[baseIndex+1] = int((b >> 6) & 1)
+		bits[baseIndex+2] = int((b >> 5) & 1)
+		bits[baseIndex+3] = int((b >> 4) & 1)
+		bits[baseIndex+4] = int((b >> 3) & 1)
+		bits[baseIndex+5] = int((b >> 2) & 1)
+		bits[baseIndex+6] = int((b >> 1) & 1)
+		bits[baseIndex+7] = int(b & 1)
 	}
 	return bits
 }
@@ -32,43 +43,43 @@ func binaryToCIDR(path []byte, ipType int) *net.IPNet {
 		return nil
 	}
 
-	// Initialize variables
-	var ipStr string
-	maskLen := len(path)
-	totalBits := 32 // Default for IPv4
-
+	totalBits, increment := 32, 8
 	if ipType == 6 {
-		totalBits = 128 // For IPv6
+		totalBits, increment = 128, 16
 	}
 
-	// Ensure path is the correct length by appending zeros if necessary
-	for len(path) < totalBits {
-		path = append(path, 0)
+	// Preallocate slice to required size
+	pathLen := len(path)
+	if len(path) < totalBits {
+		extendedPath := make([]byte, totalBits)
+		copy(extendedPath, path)
+		path = extendedPath
 	}
 
-	// Convert binary to IP address
-	if ipType == 4 {
-		// IPv4 - every 8 bits (1 byte) is a part of the IP
-		for i := 0; i < totalBits; i += 8 {
-			if i > 0 {
-				ipStr += "."
-			}
-			byteVal := binarySliceToByte(path[i:min(i+8, totalBits)])
-			ipStr += strconv.Itoa(int(byteVal))
+	// Convert binary to IP address string
+	var ipStrBuilder strings.Builder
+	for i := 0; i < totalBits; i += increment {
+		if ipType == 4 && i > 0 {
+			ipStrBuilder.WriteByte('.')
 		}
-	} else {
-		// IPv6 - every 16 bits (2 bytes or 1 hextet) is a part of the IP
-		for i := 0; i < totalBits; i += 16 {
-			if i > 0 {
-				ipStr += ":"
-			}
+		if ipType == 6 && i > 0 {
+			ipStrBuilder.WriteByte(':')
+		}
+
+		if ipType == 4 {
+			// IPv4: Process each byte
+			byteVal := binarySliceToByte(path[i:min(i+8, totalBits)])
+			ipStrBuilder.WriteString(strconv.Itoa(int(byteVal)))
+		} else {
+			// IPv6: Process each hextet
 			hextet := binarySliceToUint16(path[i:min(i+16, totalBits)])
-			ipStr += fmt.Sprintf("%04x", hextet)
+			ipStrBuilder.WriteString(fmt.Sprintf("%04x", hextet))
 		}
 	}
 
 	// Parse the IP and mask
-	ip, ipNet, err := net.ParseCIDR(ipStr + "/" + strconv.Itoa(maskLen))
+	ip, ipNet, err := net.ParseCIDR(
+		ipStrBuilder.String() + "/" + strconv.Itoa(pathLen))
 	if err != nil {
 		fmt.Println("Error parsing CIDR:", err)
 		return nil
