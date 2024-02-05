@@ -16,6 +16,14 @@ func (t *PyTricia) GetKey(cidr string) string {
 	return ""
 }
 
+// GetKey returns key value pair associated with CIDR or IP
+func (t *PyTricia) GetKV(cidr string) (string, interface{}) {
+	if node := t.getNode(cidr); node != nil {
+		return node.cidr().String(), node.value
+	}
+	return "", nil
+}
+
 // Contains returns whether a CIDR or IP is contained within the trie
 func (t *PyTricia) Contains(cidr string) bool {
 	return t.Get(cidr) != nil
