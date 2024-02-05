@@ -29,11 +29,8 @@ func TestPytriciaIPv4(t *testing.T) {
 		t.Errorf("Error on test 6: %v", val)
 	}
 
-	if val := pt.GetKey("8.8.7.0/24"); val != nil {
+	if val := pt.GetKey("8.8.8.8"); val != "8.8.8.0/24" {
 		t.Errorf("Error on test 4: %v", val)
-	}
-	if val := pt.GetKey("8.8.8.0/24"); val != "testing123" {
-		t.Errorf("Error on test 1: %v", val)
 	}
 
 	if !pt.HasKey("8.8.8.0/24") {
@@ -99,10 +96,7 @@ func TestPytriciaIPv6(t *testing.T) {
 		t.Errorf("Error on test 5: %v", val)
 	}
 
-	if val := pt.GetKey("2001:250:1:100::"); val != nil {
-		t.Errorf("Error on test 4: %v", val)
-	}
-	if val := pt.GetKey("2001:250::/38"); val != "testing123" {
+	if val := pt.GetKey("2001:250::/38"); val != "2001:250::/38" {
 		t.Errorf("Error on test 1: %v", val)
 	}
 

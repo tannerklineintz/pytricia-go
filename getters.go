@@ -8,13 +8,12 @@ func (t *PyTricia) Get(cidr string) interface{} {
 	return nil
 }
 
-// GetKey returns value associated with CIDR or IP
-// only if direct key match present
-func (t *PyTricia) GetKey(cidr string) interface{} {
-	if node := t.getKeyNode(cidr); node != nil {
-		return node.value
+// GetKey returns key associated with CIDR or IP
+func (t *PyTricia) GetKey(cidr string) string {
+	if node := t.getNode(cidr); node != nil {
+		return node.cidr().String()
 	}
-	return nil
+	return ""
 }
 
 // Contains returns whether a CIDR or IP is contained within the trie
@@ -24,12 +23,12 @@ func (t *PyTricia) Contains(cidr string) bool {
 
 // HasKey returns whether a CIDR or IP is a key within the trie
 func (t *PyTricia) HasKey(cidr string) bool {
-	return t.GetKey(cidr) != nil
+	return t.keyNode(cidr) != nil
 }
 
 // getKeyNode returns node associated with CIDR or IP
 // only if direct key match present
-func (t *PyTricia) getKeyNode(cidr string) *PyTricia {
+func (t *PyTricia) keyNode(cidr string) *PyTricia {
 	ip, ones, err := parseCIDR(cidr)
 	if err != nil {
 		return nil
