@@ -9,8 +9,8 @@ func (t *PyTricia) ToMap() map[string]interface{} {
 
 	stack := [][3]interface{}{{t, []byte{}, 0}}
 
-	t.Mutex.RLock()
-	defer t.Mutex.RUnlock()
+	t.mutex.RLock()
+	defer t.mutex.RUnlock()
 	for len(stack) > 0 {
 		item := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
@@ -49,8 +49,8 @@ func (t *PyTricia) Keys() []string {
 
 	stack := [][3]interface{}{{t, []byte{}, 0}}
 
-	t.Mutex.RLock()
-	defer t.Mutex.RUnlock()
+	t.mutex.RLock()
+	defer t.mutex.RUnlock()
 	for len(stack) > 0 {
 		item := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
@@ -89,8 +89,8 @@ func (t *PyTricia) Values() []interface{} {
 
 	stack := [][3]interface{}{{t, []byte{}, 0}}
 
-	t.Mutex.RLock()
-	defer t.Mutex.RUnlock()
+	t.mutex.RLock()
+	defer t.mutex.RUnlock()
 	for len(stack) > 0 {
 		item := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]

@@ -42,8 +42,8 @@ func (t *PyTricia) keyNode(cidr string) *PyTricia {
 		return nil
 	}
 
-	t.Mutex.RLock()
-	defer t.Mutex.RUnlock()
+	t.mutex.RLock()
+	defer t.mutex.RUnlock()
 	currentNode := t
 	for i, bit := range ipToBinary(ip) {
 		if i >= ones {
@@ -64,8 +64,8 @@ func (t *PyTricia) getNode(cidr string) *PyTricia {
 		return nil
 	}
 
-	t.Mutex.RLock()
-	defer t.Mutex.RUnlock()
+	t.mutex.RLock()
+	defer t.mutex.RUnlock()
 	currentNode := t
 	var currentValue *PyTricia = nil
 	for i, bit := range ipToBinary(ip) {

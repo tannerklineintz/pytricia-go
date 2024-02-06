@@ -5,8 +5,8 @@ func (t *PyTricia) Children(cidr string) map[string]interface{} {
 	children := make(map[string]interface{})
 	node := t.getNode(cidr)
 
-	t.Mutex.RLock()
-	defer t.Mutex.RUnlock()
+	t.mutex.RLock()
+	defer t.mutex.RUnlock()
 
 	stack := []*PyTricia{node}
 	for len(stack) > 0 {
@@ -32,8 +32,8 @@ func (t *PyTricia) Children(cidr string) map[string]interface{} {
 func (t *PyTricia) Parent(cidr string) (string, interface{}) {
 	node := t.getNode(cidr)
 
-	t.Mutex.RLock()
-	defer t.Mutex.RUnlock()
+	t.mutex.RLock()
+	defer t.mutex.RUnlock()
 
 	// Start from the current node and traverse up
 	currentNode := node.parent

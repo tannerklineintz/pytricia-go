@@ -11,7 +11,7 @@ func NewPyTricia() *PyTricia {
 		children: [2]*PyTricia{nil, nil},
 		parent:   nil,
 		value:    nil,
-		Mutex:    sync.RWMutex{},
+		mutex:    sync.RWMutex{},
 	}
 }
 
@@ -21,7 +21,7 @@ type PyTricia struct {
 	children [2]*PyTricia
 	parent   *PyTricia
 	value    interface{}
-	Mutex    sync.RWMutex
+	mutex    sync.RWMutex
 }
 
 // CIDR returns the CIDR representation of the current PyTricia node in the trie.

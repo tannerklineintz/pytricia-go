@@ -1,6 +1,6 @@
 # Pytricia Go
 
-A port of [pytricia](https://github.com/jsommers/pytricia) to golang.
+A thread safe port of [pytricia](https://github.com/jsommers/pytricia) to golang.
 
 
 # Usage
@@ -29,5 +29,5 @@ func main() {
 __More example code available in [test code](./pytricia_test.go)__
 
 # TO DO
- - Delete()
- - Clear()
+ - testing for Delete()
+ - testing for Clear()
