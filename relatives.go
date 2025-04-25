@@ -1,52 +1,58 @@
 package pytricia
 
-// AllChildren returns all child nodes with non-nil values in a slice.
+// Children returns every descendant whose value is non-nil.
+// Snapshot semantics: may miss nodes added *after* the initial lock.
 func (t *PyTricia) Children(cidr string) map[string]interface{} {
-	children := make(map[string]interface{})
-	node := t.getNode(cidr)
+	out := make(map[string]interface{})
 
+	// 1) Locate the subtree root under a short read-lock.
 	t.mutex.RLock()
-	defer t.mutex.RUnlock()
+	start := t.getNode(cidr)
+	t.mutex.RUnlock()
+	if start == nil {
+		return out
+	}
 
-	stack := []*PyTricia{node}
+	// 2) Depth-first scan without holding the global lock.
+	stack := []*PyTricia{start}
 	for len(stack) > 0 {
-		currentNode := stack[len(stack)-1]
+		n := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
-		if currentNode.value != nil {
-			c := currentNode.cidr()
-			if c != nil {
-				children[c.String()] = currentNode.value
+
+		if v := n.value; v != nil {
+			if c := n.cidr(); c != nil {
+				out[c.String()] = v
 			}
 		}
-		if currentNode.children[1] != nil {
-			stack = append(stack, currentNode.children[1])
+		if r := n.children[1]; r != nil {
+			stack = append(stack, r)
 		}
-		if currentNode.children[0] != nil {
-			stack = append(stack, currentNode.children[0])
+		if l := n.children[0]; l != nil {
+			stack = append(stack, l)
 		}
 	}
-	return children
+	return out
 }
 
-// returns parent, if any
+// Parent returns the first ancestor that carries a non-nil value.
+// Snapshot semantics: if another goroutine inserts a closer ancestor
+// concurrently you may still see the older one, but never an invalid ptr.
 func (t *PyTricia) Parent(cidr string) (string, interface{}) {
-	node := t.getNode(cidr)
-
+	// 1) Pin the start node quickly under read-lock.
 	t.mutex.RLock()
-	defer t.mutex.RUnlock()
+	n := t.getNode(cidr)
+	t.mutex.RUnlock()
+	if n == nil {
+		return "", nil
+	}
 
-	// Start from the current node and traverse up
-	currentNode := node.parent
-	for currentNode != nil {
-		// Check if the current ancestor node has a non-nil value
-		if currentNode.value != nil {
-			c := currentNode.cidr()
-			if c != nil {
-				return c.String(), currentNode.value
+	// 2) Walk upward lock-free.
+	for p := n.parent; p != nil; p = p.parent {
+		if v := p.value; v != nil {
+			if c := p.cidr(); c != nil {
+				return c.String(), v
 			}
 		}
-		currentNode = currentNode.parent
 	}
-	// If no ancestor with a non-nil value is found, return nil
 	return "", nil
 }

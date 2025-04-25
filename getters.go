@@ -1,41 +1,40 @@
 package pytricia
 
-// Get returns value associated with CIDR or IP
+// Get: longest-prefix match – returns the stored value (or nil)
 func (t *PyTricia) Get(cidr string) interface{} {
-	if node := t.getNode(cidr); node != nil {
-		return node.value
+	if n := t.getNode(cidr); n != nil {
+		return n.value
 	}
 	return nil
 }
 
-// GetKey returns key associated with CIDR or IP
+// GetKey: returns the CIDR string that actually stored the value
 func (t *PyTricia) GetKey(cidr string) string {
-	if node := t.getNode(cidr); node != nil {
-		return node.cidr().String()
+	if n := t.getNode(cidr); n != nil {
+		if c := n.cidr(); c != nil {
+			return c.String()
+		}
 	}
 	return ""
 }
 
-// GetKey returns key value pair associated with CIDR or IP
+// GetKV: key + value in one call (avoids 2× parseCIDR)
 func (t *PyTricia) GetKV(cidr string) (string, interface{}) {
-	if node := t.getNode(cidr); node != nil {
-		return node.cidr().String(), node.value
+	if n := t.getNode(cidr); n != nil {
+		if c := n.cidr(); c != nil {
+			return c.String(), n.value
+		}
 	}
 	return "", nil
 }
 
-// Contains returns whether a CIDR or IP is contained within the trie
-func (t *PyTricia) Contains(cidr string) bool {
-	return t.Get(cidr) != nil
-}
+// Contains: does a prefix (or IP) resolve to *anything*?
+func (t *PyTricia) Contains(cidr string) bool { return t.Get(cidr) != nil }
 
-// HasKey returns whether a CIDR or IP is a key within the trie
-func (t *PyTricia) HasKey(cidr string) bool {
-	return t.keyNode(cidr) != nil
-}
+// HasKey: exact-match test (node must *store* a value at that prefix)
+func (t *PyTricia) HasKey(cidr string) bool { return t.keyNode(cidr) != nil }
 
-// getKeyNode returns node associated with CIDR or IP
-// only if direct key match present
+// keyNode: exact-match node (no LPM) – read-lock held only for traversal
 func (t *PyTricia) keyNode(cidr string) *PyTricia {
 	ip, ones, err := parseCIDR(cidr)
 	if err != nil {
@@ -44,20 +43,18 @@ func (t *PyTricia) keyNode(cidr string) *PyTricia {
 
 	t.mutex.RLock()
 	defer t.mutex.RUnlock()
-	currentNode := t
-	for i, bit := range ipToBinary(ip) {
-		if i >= ones {
-			break
-		}
-		if currentNode.children[bit] == nil {
+
+	n := t
+	for i := 0; i < ones; i++ {
+		n = n.children[bit(ip, i)]
+		if n == nil {
 			return nil
 		}
-		currentNode = currentNode.children[bit]
 	}
-	return currentNode
+	return n
 }
 
-// GetNode returns the node associated with CIDR or IP
+// getNode: longest-prefix match (LPM)
 func (t *PyTricia) getNode(cidr string) *PyTricia {
 	ip, ones, err := parseCIDR(cidr)
 	if err != nil {
@@ -66,19 +63,16 @@ func (t *PyTricia) getNode(cidr string) *PyTricia {
 
 	t.mutex.RLock()
 	defer t.mutex.RUnlock()
-	currentNode := t
-	var currentValue *PyTricia = nil
-	for i, bit := range ipToBinary(ip) {
-		if i >= ones {
+
+	n, best := t, (*PyTricia)(nil)
+	for i := 0; i < ones; i++ {
+		n = n.children[bit(ip, i)]
+		if n == nil {
 			break
 		}
-		if currentNode.children[bit] == nil {
-			break
-		}
-		currentNode = currentNode.children[bit]
-		if currentNode.value != nil {
-			currentValue = currentNode
+		if n.value != nil {
+			best = n
 		}
 	}
-	return currentValue
+	return best
 }

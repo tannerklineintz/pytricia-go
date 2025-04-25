@@ -264,3 +264,37 @@ func BenchmarkHasKeyIPv6(b *testing.B) {
 		pt.HasKey(cidrs[i])
 	}
 }
+
+func BenchmarkAll(b *testing.B) {
+	// Disable the automatic timer while we set up shared data.
+	b.StopTimer()
+
+	// Pre-generate random CIDRs so each sub-bench gets identical input.
+	n := b.N
+	v4cidrs := make([]string, n)
+	v6cidrs := make([]string, n)
+	for i := 0; i < n; i++ {
+		v4cidrs[i] = randomIPv4CIDR()
+		v6cidrs[i] = randomIPv6CIDR()
+	}
+
+	pt := NewPyTricia() // fresh trie each outer iteration
+
+	b.StartTimer() // everything below counts toward the single timing
+
+	for i := 0; i < n; i++ {
+		// IPv4 ops
+		pt.Insert(v4cidrs[i], "test")
+		pt.Set(v4cidrs[i], "test")
+		_ = pt.Add(v4cidrs[i], "test")
+		_ = pt.Get(v4cidrs[i])
+		_ = pt.HasKey(v4cidrs[i])
+
+		// IPv6 ops
+		pt.Insert(v6cidrs[i], "test")
+		pt.Set(v6cidrs[i], "test")
+		_ = pt.Add(v6cidrs[i], "test")
+		_ = pt.Get(v6cidrs[i])
+		_ = pt.HasKey(v6cidrs[i])
+	}
+}

@@ -24,25 +24,33 @@ type PyTricia struct {
 	mutex    sync.RWMutex
 }
 
-// CIDR returns the CIDR representation of the current PyTricia node in the trie.
-func (node *PyTricia) cidr() *net.IPNet {
-	// Start from the current node and traverse up to the root to construct the path.
-	var path []byte
-	currentNode := node
-	for currentNode.parent != nil {
-		if currentNode == currentNode.parent.children[0] {
-			path = append([]byte{0}, path...)
+func (n *PyTricia) cidr() *net.IPNet {
+	// ─── 1. Find a node that knows the family (4 or 6). ──────────────────
+	fam := n
+	for fam != nil && fam.ipType == 0 {
+		fam = fam.parent
+	}
+	if fam == nil {
+		return nil // should never happen, but guard anyway
+	}
+
+	// ─── 2. Build the full bit-path from *root* to the original node. ────
+	// We collect bits in reverse, then reverse once at the end because
+	// prepending in a loop explodes the allocator.
+	var revBits []byte
+	for cur := n; cur.parent != nil; cur = cur.parent {
+		if cur == cur.parent.children[0] {
+			revBits = append(revBits, 0)
 		} else {
-			path = append([]byte{1}, path...)
+			revBits = append(revBits, 1)
 		}
-		currentNode = currentNode.parent
+	}
+	// Reverse into forward order.
+	bits := make([]byte, len(revBits))
+	for i := range revBits {
+		bits[len(revBits)-1-i] = revBits[i]
 	}
 
-	// Convert the path to CIDR.
-	ipnet := binaryToCIDR(path, node.ipType)
-	if ipnet == nil {
-		return nil
-	}
-
-	return ipnet
+	// ─── 3. Convert the bit slice to *net.IPNet. ─────────────────────────
+	return binaryToCIDR(bits, fam.ipType)
 }
