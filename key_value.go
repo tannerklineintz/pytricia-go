@@ -1,118 +1,99 @@
 package pytricia
 
-// ToMap converts the PyTricia trie into a map of CIDR strings to their associated values
+// ---------------------------------------------------------------------------
+// ToMap: snapshot of every <CIDR,value> in the trie.
+// ---------------------------------------------------------------------------
 func (t *PyTricia) ToMap() map[string]interface{} {
-	result := make(map[string]interface{})
+	out := make(map[string]interface{})
 	if t == nil {
-		return result
+		return out
 	}
 
-	stack := [][3]interface{}{{t, []byte{}, 0}}
-
+	// Pin the root briefly.
 	t.mutex.RLock()
-	defer t.mutex.RUnlock()
+	start := t
+	t.mutex.RUnlock()
+
+	stack := []*PyTricia{start}
 	for len(stack) > 0 {
-		item := stack[len(stack)-1]
+		n := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
 
-		node := item[0].(*PyTricia)
-		path := item[1].([]byte)
-		depth := item[2].(int)
-
-		if node.value != nil {
-			cidr := binaryToCIDR(path[:depth], node.ipType)
-			if cidr != nil {
-				result[cidr.String()] = node.value
+		if v := n.value; v != nil {
+			if c := n.cidr(); c != nil {
+				out[c.String()] = v
 			}
 		}
-
-		if node.children[1] != nil {
-			newPath := make([]byte, len(path))
-			copy(newPath, path)
-			stack = append(stack, [3]interface{}{node.children[1], append(newPath, 1), depth + 1})
+		if r := n.children[1]; r != nil {
+			stack = append(stack, r)
 		}
-		if node.children[0] != nil {
-			newPath := make([]byte, len(path))
-			copy(newPath, path)
-			stack = append(stack, [3]interface{}{node.children[0], append(newPath, 0), depth + 1})
+		if l := n.children[0]; l != nil {
+			stack = append(stack, l)
 		}
 	}
-	return result
+	return out
 }
 
-// Keys returns all keys in the trie
+// ---------------------------------------------------------------------------
+// Keys: every CIDR stored in the trie.
+// ---------------------------------------------------------------------------
 func (t *PyTricia) Keys() []string {
-	result := []string{}
+	keys := []string{}
 	if t == nil {
-		return result
+		return keys
 	}
 
-	stack := [][3]interface{}{{t, []byte{}, 0}}
-
 	t.mutex.RLock()
-	defer t.mutex.RUnlock()
+	start := t
+	t.mutex.RUnlock()
+
+	stack := []*PyTricia{start}
 	for len(stack) > 0 {
-		item := stack[len(stack)-1]
+		n := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
 
-		node := item[0].(*PyTricia)
-		path := item[1].([]byte)
-		depth := item[2].(int)
-
-		if node.value != nil {
-			cidr := binaryToCIDR(path[:depth], node.ipType)
-			if cidr != nil {
-				result = append(result, cidr.String())
+		if n.value != nil {
+			if c := n.cidr(); c != nil {
+				keys = append(keys, c.String())
 			}
 		}
-
-		if node.children[1] != nil {
-			newPath := make([]byte, len(path))
-			copy(newPath, path)
-			stack = append(stack, [3]interface{}{node.children[1], append(newPath, 1), depth + 1})
+		if r := n.children[1]; r != nil {
+			stack = append(stack, r)
 		}
-		if node.children[0] != nil {
-			newPath := make([]byte, len(path))
-			copy(newPath, path)
-			stack = append(stack, [3]interface{}{node.children[0], append(newPath, 0), depth + 1})
+		if l := n.children[0]; l != nil {
+			stack = append(stack, l)
 		}
 	}
-	return result
+	return keys
 }
 
-// Values returns all keys in the trie
+// ---------------------------------------------------------------------------
+// Values: every stored value (order parallels Keys()).
+// ---------------------------------------------------------------------------
 func (t *PyTricia) Values() []interface{} {
-	result := []interface{}{}
+	vals := []interface{}{}
 	if t == nil {
-		return result
+		return vals
 	}
-
-	stack := [][3]interface{}{{t, []byte{}, 0}}
 
 	t.mutex.RLock()
-	defer t.mutex.RUnlock()
+	start := t
+	t.mutex.RUnlock()
+
+	stack := []*PyTricia{start}
 	for len(stack) > 0 {
-		item := stack[len(stack)-1]
+		n := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
 
-		node := item[0].(*PyTricia)
-		path := item[1].([]byte)
-		depth := item[2].(int)
-
-		if node.value != nil {
-			result = append(result, node.value)
+		if v := n.value; v != nil {
+			vals = append(vals, v)
 		}
-
-		if node.children[1] != nil {
-			newPath := make([]byte, len(path))
-			copy(newPath, path)
-			stack = append(stack, [3]interface{}{node.children[1], append(newPath, 1), depth + 1})
+		if r := n.children[1]; r != nil {
+			stack = append(stack, r)
 		}
-		if node.children[0] != nil {
-			newPath := make([]byte, len(path))
-			copy(newPath, path)
-			stack = append(stack, [3]interface{}{node.children[0], append(newPath, 0), depth + 1})
+		if l := n.children[0]; l != nil {
+			stack = append(stack, l)
 		}
 	}
-	return result
+	return vals
 }

@@ -1,43 +1,54 @@
 package pytricia
 
-import (
-	"errors"
-	"sync"
-)
+import "errors"
 
-// Delete removes the node associated with the given CIDR or IP.
+// Delete removes a prefix (or single IP) and prunes now-empty branches.
 func (t *PyTricia) Delete(cidr string) error {
-	node := t.keyNode(cidr)
-	if node == nil {
+	// 1)  Locate the node quickly under read-lock.
+	t.mutex.RLock()
+	target := t.keyNode(cidr)
+	t.mutex.RUnlock()
+	if target == nil {
 		return errors.New("CIDR not found")
 	}
 
+	// 2)  Promote to write-lock once for the actual mutation.
 	t.mutex.Lock()
-	defer t.mutex.Unlock()
-
-	// Set the node's value to nil.
-	node.value = nil
-
-	// Remove any unnecessary parent nodes.
-	for node.parent != nil && node.children[0] == nil && node.children[1] == nil && node.value == nil {
-		parent := node.parent
-		if parent.children[0] == node {
-			parent.children[0] = nil
-		} else {
-			parent.children[1] = nil
-		}
-		node = parent
+	// Re-validate in case another writer deleted it meanwhile.
+	if target.value == nil && target.children[0] == nil && target.children[1] == nil {
+		// Either someone already removed it or it never held a value.
+		t.mutex.Unlock()
+		return errors.New("CIDR not found")
 	}
 
+	// Clear the stored value.
+	target.value = nil
+
+	// Prune ancestor chain while the branch is empty.
+	for n := target; n.parent != nil &&
+		n.value == nil &&
+		n.children[0] == nil &&
+		n.children[1] == nil; {
+
+		p := n.parent
+		if p.children[0] == n {
+			p.children[0] = nil
+		} else if p.children[1] == n {
+			p.children[1] = nil
+		}
+		n = p
+	}
+	t.mutex.Unlock()
 	return nil
 }
 
-// Clear deallocates the entire trie.
+// Clear wipes the entire trie in O(1) time while holding the write-lock.
 func (t *PyTricia) Clear() {
-	*t = PyTricia{
-		children: [2]*PyTricia{nil, nil},
-		parent:   nil,
-		value:    nil,
-		mutex:    sync.RWMutex{},
-	}
+	t.mutex.Lock()
+	// Keep the same mutex instance (can’t replace it while locked).
+	t.children[0], t.children[1] = nil, nil
+	t.value = nil
+	t.parent = nil // root has no parent; safe to set
+	t.ipType = 0   // if you track type info
+	t.mutex.Unlock()
 }

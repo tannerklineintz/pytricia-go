@@ -1,117 +1,138 @@
 package pytricia
 
-import (
-	"errors"
-)
+import "errors"
 
-// Insert inserts an IP or CIDR and its value into the trie. This
-// overwrites the value if already present
+// Insert: overwrite or create
 func (t *PyTricia) Insert(cidr string, value interface{}) error {
 	ip, ones, err := parseCIDR(cidr)
 	if err != nil {
 		return err
 	}
 
+	node := t
+	i := 0
+
+	// 1) Walk under read-lock until we hit a nil edge
 	t.mutex.RLock()
-	currentNode := t
-	for i, bit := range ipToBinary(ip) {
-		if i >= ones {
-			break
+	for ; i < ones; i++ {
+		b := bit(ip, i)
+		if next := node.children[b]; next != nil {
+			node = next
+			continue
 		}
-		if currentNode.children[bit] == nil {
-			t.mutex.RUnlock()
-			t.mutex.Lock()
-			currentNode.children[bit] = &PyTricia{
-				parent:   currentNode,
-				children: [2]*PyTricia{nil, nil},
-				value:    nil,
-			}
-			t.mutex.Unlock()
-			t.mutex.RLock()
-		}
-		currentNode = currentNode.children[bit]
+		break
 	}
 	t.mutex.RUnlock()
 
-	t.mutex.Lock()
-	currentNode.value = value
-	currentNode.ipType = typeIP(cidr)
-	t.mutex.Unlock()
+	// 2) If we stopped early, grab the write-lock once and finish path
+	if i < ones {
+		t.mutex.Lock()
+		for ; i < ones; i++ {
+			b := bit(ip, i)
+			if node.children[b] == nil { // **double-check after lock**
+				node.children[b] = &PyTricia{
+					parent:   node,
+					children: [2]*PyTricia{},
+					value:    nil,
+					ipType:   typeIP(cidr),
+				}
+			}
+			node = node.children[b]
+		}
+		// still holding write-lock → set value
+		node.value = value
+		node.ipType = typeIP(cidr)
+		t.mutex.Unlock()
+		return nil
+	}
 
+	// 3) Path existed; just update value (very short write-lock)
+	t.mutex.Lock()
+	node.value = value
+	node.ipType = typeIP(cidr)
+	t.mutex.Unlock()
 	return nil
 }
 
-// Sets value of IP or CIDR, only if the value already exists;
-// returns error if CIDR not already inserted.
+// Set: overwrite only if CIDR already present
 func (t *PyTricia) Set(cidr string, value interface{}) error {
 	ip, ones, err := parseCIDR(cidr)
 	if err != nil {
 		return err
 	}
 
+	node := t
 	t.mutex.RLock()
-	currentNode := t
-	for i, bit := range ipToBinary(ip) {
-		if i >= ones {
-			break
-		}
-		if currentNode.children[bit] == nil {
+	for i := 0; i < ones; i++ {
+		b := bit(ip, i)
+		if node = node.children[b]; node == nil {
 			t.mutex.RUnlock()
 			return errors.New("CIDR not present")
 		}
-		currentNode = currentNode.children[bit]
 	}
-	if currentNode.value == nil {
+	if node.value == nil {
 		t.mutex.RUnlock()
 		return errors.New("CIDR not present")
 	}
 	t.mutex.RUnlock()
 
+	// value exists → acquire write-lock just to mutate
 	t.mutex.Lock()
-	currentNode.value = value
-	currentNode.ipType = typeIP(cidr)
+	node.value = value
+	node.ipType = typeIP(cidr)
 	t.mutex.Unlock()
-
 	return nil
 }
 
-// Sets value of IP or CIDR, only if the value doesn't already exist;
-// returns error if CIDR is already inserted.
+// Add: insert only if CIDR *not* already present
 func (t *PyTricia) Add(cidr string, value interface{}) error {
 	ip, ones, err := parseCIDR(cidr)
 	if err != nil {
 		return err
 	}
 
+	node := t
+	i := 0
+
+	// 1) Read-only walk until gap or end
 	t.mutex.RLock()
-	currentNode := t
-	for i, bit := range ipToBinary(ip) {
-		if i >= ones {
-			break
+	for ; i < ones; i++ {
+		b := bit(ip, i)
+		if next := node.children[b]; next != nil {
+			node = next
+			continue
 		}
-		if currentNode.children[bit] == nil {
-			t.mutex.RUnlock()
-			t.mutex.Lock()
-			currentNode.children[bit] = &PyTricia{
-				parent:   currentNode,
-				children: [2]*PyTricia{nil, nil},
-				value:    nil,
-			}
-			t.mutex.Unlock()
-			t.mutex.RLock()
-		}
-		currentNode = currentNode.children[bit]
+		break
 	}
-	if currentNode.value != nil {
-		t.mutex.RUnlock()
-		return errors.New("CIDR already present")
-	}
+	alreadyExists := (i == ones && node.value != nil)
 	t.mutex.RUnlock()
 
-	t.mutex.Lock()
-	currentNode.value = value
-	currentNode.ipType = typeIP(cidr)
-	t.mutex.Unlock()
+	if alreadyExists {
+		return errors.New("CIDR already present")
+	}
 
+	// 2) Need to create nodes or set value → single write-lock
+	t.mutex.Lock()
+	// (re-do the walk from the point we left off; node is still correct)
+	for ; i < ones; i++ {
+		b := bit(ip, i)
+		if node.children[b] == nil {
+			node.children[b] = &PyTricia{
+				parent:   node,
+				children: [2]*PyTricia{},
+				value:    nil,
+				ipType:   typeIP(cidr),
+			}
+		}
+		node = node.children[b]
+	}
+
+	if node.value != nil { // in case another writer beat us
+		t.mutex.Unlock()
+		return errors.New("CIDR already present")
+	}
+	node.value = value
+	node.ipType = typeIP(cidr)
+	t.mutex.Unlock()
 	return nil
 }

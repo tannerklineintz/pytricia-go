@@ -128,28 +128,51 @@ func typeIP(cidr string) int {
 	return -1
 }
 
-// parseCIDR parses IP or CIDR
+// parseCIDR parses either a bare IP string ("8.8.8.8") or a CIDR
+// ("8.8.8.0/24") and returns:
+//
+//   - ip   – the address as a byte slice (IPv4 always 4 bytes, IPv6 16 bytes)
+//   - ones – the prefix length in bits (32 for a lone IPv4 address, 128 for IPv6)
+//   - err  – non-nil only if the input isn’t a valid IP/CIDR
 func parseCIDR(cidr string) (net.IP, int, error) {
-	var ip net.IP
-	var ipnet *net.IPNet
-	var ones int
-	var err error
+	var (
+		ip    net.IP
+		ipnet *net.IPNet
+		ones  int
+	)
 
+	//----------------------------------------------------------------------
+	// Case 1: the string is a bare IP address.
+	//----------------------------------------------------------------------
 	if ip = net.ParseIP(cidr); ip != nil {
-		if t := typeIP(cidr); t == 4 {
+		switch typeIP(cidr) {
+		case 4:
+			ip = ip.To4() // <-- ensure 4-byte representation
 			ones = 32
-		} else if t == 6 {
+		case 6:
 			ones = 128
-		} else {
-			return nil, 0, errors.New("Invalid IP/CIDR")
+		default:
+			return nil, 0, errors.New("invalid IP/CIDR")
 		}
-	} else {
-		ip, ipnet, err = net.ParseCIDR(cidr)
-		if err != nil {
-			return nil, 0, errors.New("Invalid IP/CIDR")
-		}
-		ones, _ = ipnet.Mask.Size()
+		return ip, ones, nil
 	}
+
+	//----------------------------------------------------------------------
+	// Case 2: must be CIDR notation (ip/mask).
+	//----------------------------------------------------------------------
+	var err error
+	ip, ipnet, err = net.ParseCIDR(cidr)
+	if err != nil {
+		return nil, 0, errors.New("invalid IP/CIDR")
+	}
+
+	ones, _ = ipnet.Mask.Size()
+
+	// If the CIDR is IPv4 (mask ≤ 32) make sure we return a 4-byte IP.
+	if ip4 := ip.To4(); ip4 != nil && ones <= 32 {
+		ip = ip4
+	}
+
 	return ip, ones, nil
 }
 
@@ -201,4 +224,9 @@ func randomIPv6CIDR() string {
 	ip := randomIPv6()
 	mask := rand.Intn(128) + 1 // 1 to 128
 	return fmt.Sprintf("%s/%d", ip, mask)
+}
+
+// bit returns the i-th bit (0-based) of the IP address.
+func bit(ip []byte, i int) int {
+	return int((ip[i/8] >> (7 - uint(i%8))) & 1)
 }
