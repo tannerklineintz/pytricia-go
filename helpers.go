@@ -141,9 +141,7 @@ func parseCIDR(cidr string) (net.IP, int, error) {
 		ones  int
 	)
 
-	//----------------------------------------------------------------------
 	// Case 1: the string is a bare IP address.
-	//----------------------------------------------------------------------
 	if ip = net.ParseIP(cidr); ip != nil {
 		switch typeIP(cidr) {
 		case 4:
@@ -157,9 +155,7 @@ func parseCIDR(cidr string) (net.IP, int, error) {
 		return ip, ones, nil
 	}
 
-	//----------------------------------------------------------------------
 	// Case 2: must be CIDR notation (ip/mask).
-	//----------------------------------------------------------------------
 	var err error
 	ip, ipnet, err = net.ParseCIDR(cidr)
 	if err != nil {

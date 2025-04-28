@@ -1,8 +1,6 @@
 package pytricia
 
-// ---------------------------------------------------------------------------
 // ToMap: snapshot of every <CIDR,value> in the trie.
-// ---------------------------------------------------------------------------
 func (t *PyTricia) ToMap() map[string]interface{} {
 	out := make(map[string]interface{})
 	if t == nil {
@@ -34,9 +32,7 @@ func (t *PyTricia) ToMap() map[string]interface{} {
 	return out
 }
 
-// ---------------------------------------------------------------------------
 // Keys: every CIDR stored in the trie.
-// ---------------------------------------------------------------------------
 func (t *PyTricia) Keys() []string {
 	keys := []string{}
 	if t == nil {
@@ -67,9 +63,7 @@ func (t *PyTricia) Keys() []string {
 	return keys
 }
 
-// ---------------------------------------------------------------------------
 // Values: every stored value (order parallels Keys()).
-// ---------------------------------------------------------------------------
 func (t *PyTricia) Values() []interface{} {
 	vals := []interface{}{}
 	if t == nil {
